@@ -1,13 +1,18 @@
 """
 title: Honcho Memory
 author: oliver
-version: 0.6.1
+version: 0.6.2
 description: Automatic long-term memory via MANAGED Honcho cloud (app.honcho.dev).
     Injects the user's representation before generation (inlet) and ingests each
     turn afterwards (outlet). Emits OWU status events so memory activity is visible
     in the chat (collapsible status chips), including a loud error chip if the
     honcho-ai package or API key is missing.
 requirements: honcho-ai>=2.1
+
+Quickstart: get a free API key at https://app.honcho.dev (Settings > API Keys), open this
+function's Valves and paste it into honcho_api_key. Everything else has a working default —
+memory starts flowing on your next message. No key set yet? Every chat shows a loud
+"Honcho error: honcho_api_key valve is empty" status chip instead of silently doing nothing.
 
 Portable by default: human peer id is derived per-OWU-account from __user__ (id/email),
 not hardcoded. Set peer_id_overrides to pin a specific OWU account to an existing Honcho
@@ -56,7 +61,10 @@ async def _emit(emitter, status: str, done: bool = False, description: str = "")
 class Filter:
     class Valves(BaseModel):
         honcho_api_key: str = Field(
-            default="", description="Managed Honcho API key (app.honcho.dev)."
+            default="",
+            description="REQUIRED — get a free key at https://app.honcho.dev (Settings > API Keys), "
+            "then paste it here. Until set, every chat shows a 'Honcho error: honcho_api_key valve "
+            "is empty' status chip and memory is a no-op.",
         )
         honcho_environment: str = Field(
             default="production",
