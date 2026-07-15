@@ -1,8 +1,14 @@
 # Honcho Memory for Open WebUI
 
+[![Open WebUI Community](https://img.shields.io/badge/Open%20WebUI-Community%20listing-blue)](https://openwebui.com/posts/honcho_memory_for_owu_d51f2547)
+[![Version](https://img.shields.io/badge/version-0.6.2-green)](https://github.com/TuxLux40/honcho-owu/releases/tag/v0.6.2)
+
 Open WebUI Function (`filter` type) that gives any model automatic long-term memory via
 [Honcho](https://honcho.dev) — the managed cloud, not a self-hosted instance you have to run
 yourself.
+
+**Install from the [Open WebUI community listing](https://openwebui.com/posts/honcho_memory_for_owu_d51f2547)**
+(one-click import) or clone this repo and import `honcho-owu.py` manually.
 
 Before generation, it recalls what Honcho knows about the current user and injects it as
 context (`inlet`). After generation, it stores the exchange back to Honcho (`outlet`). Memory
@@ -13,8 +19,9 @@ silently doing nothing.
 ## Quickstart
 
 1. Get a free API key at [app.honcho.dev](https://app.honcho.dev) (Settings > API Keys).
-2. In Open WebUI: Admin Panel > Functions > import `honcho-owu.py` (or paste its contents into
-   a new Function).
+2. In Open WebUI: Admin Panel > Functions > import the function — either from the
+   [community listing](https://openwebui.com/posts/honcho_memory_for_owu_d51f2547) (**Get**)
+   or by importing `honcho-owu.py` from this repo.
 3. Open the function's Valves and paste your key into `honcho_api_key`.
 4. Set the function's Type to `filter` and enable it (globally, or per-model).
 
@@ -67,6 +74,11 @@ WebUI's venv:
 ```
 pip install 'honcho-ai>=2.1'
 ```
+
+## Links
+
+- [Open WebUI community listing](https://openwebui.com/posts/honcho_memory_for_owu_d51f2547) — one-click import
+- [GitHub releases](https://github.com/TuxLux40/honcho-owu/releases) — versioned snapshots
 
 ## Notes
 
