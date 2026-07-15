@@ -1,7 +1,7 @@
 """
 title: Honcho Memory
 author: oliver
-version: 0.6.2
+version: 0.6.3
 description: Automatic long-term memory via MANAGED Honcho cloud (app.honcho.dev).
     Injects the user's representation before generation (inlet) and ingests each
     turn afterwards (outlet). Emits OWU status events so memory activity is visible
@@ -40,6 +40,24 @@ def _sanitize(raw: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_-]", "_", raw or "") or "default"
 
 
+def _normalize_base_url(raw: str) -> Optional[str]:
+    url = (raw or "").strip()
+    return url or None
+
+
+def _resolve_environment(raw: str) -> str:
+    env = (raw or "production").strip().lower()
+    if env == "demo":
+        return "production"
+    if env in ("local", "production"):
+        return env
+    raise RuntimeError(
+        f"honcho_environment must be 'local' or 'production' (got {raw!r}). "
+        "For a custom self-hosted URL, leave honcho_environment alone and set honcho_base_url "
+        "(e.g. http://your-host:8000)."
+    )
+
+
 async def _emit(emitter, status: str, done: bool = False, description: str = ""):
     if emitter is None:
         return
@@ -68,11 +86,13 @@ class Filter:
         )
         honcho_environment: str = Field(
             default="production",
-            description="Managed env: production | demo. Ignored if base_url set.",
+            description="Managed env: production | local. Ignored if honcho_base_url is set. "
+            "Use local only for the default http://localhost:8000 SDK target.",
         )
         honcho_base_url: str = Field(
             default="",
-            description="Self-hosted override. Leave empty for managed cloud.",
+            description="Self-hosted Honcho API root URL (must start with http:// or https://), "
+            "e.g. http://honcho.internal:8000. Leave empty for managed cloud.",
         )
         workspace_id: str = Field(default="main")
         user_peer_id: str = Field(
@@ -111,7 +131,13 @@ class Filter:
         self.valves = self.Valves()
         self.type = "filter"
         self._client = None
+        self._client_config = None
         self._last_error = None
+
+    def _client_settings(self) -> tuple:
+        base_url = _normalize_base_url(self.valves.honcho_base_url)
+        env = None if base_url else _resolve_environment(self.valves.honcho_environment)
+        return (self.valves.honcho_api_key, base_url, env, self.valves.workspace_id)
 
     def _excluded(self, body: dict) -> bool:
         excluded = {m.strip() for m in self.valves.excluded_model_ids.split(",") if m.strip()}
@@ -143,7 +169,8 @@ class Filter:
 
     # ---- managed honcho client (cached) -------------------------------- #
     def _honcho(self):
-        if self._client is not None:
+        settings = self._client_settings()
+        if self._client is not None and self._client_config == settings:
             return self._client
         v = self.valves
         if not v.honcho_api_key:
@@ -158,12 +185,19 @@ class Filter:
                 "pip install 'honcho-ai>=2.1'"
             )
 
-        kwargs = dict(api_key=v.honcho_api_key, workspace_id=v.workspace_id)
-        if v.honcho_base_url:
-            kwargs["base_url"] = v.honcho_base_url
+        api_key, base_url, environment, workspace_id = settings
+        kwargs = dict(api_key=api_key, workspace_id=workspace_id)
+        if base_url:
+            if not re.match(r"^https?://", base_url, re.IGNORECASE):
+                raise RuntimeError(
+                    f"honcho_base_url must start with http:// or https:// (got {base_url!r}). "
+                    "Set the honcho_base_url valve, not honcho_environment."
+                )
+            kwargs["base_url"] = base_url
         else:
-            kwargs["environment"] = v.honcho_environment
+            kwargs["environment"] = environment
         self._client = Honcho(**kwargs)
+        self._client_config = settings
         return self._client
 
     def _peer(self, name: str, observe_me: bool):
